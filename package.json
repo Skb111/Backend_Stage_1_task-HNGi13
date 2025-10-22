@@ -1,0 +1,29 @@
+{
+  "name": "backend_stage_1_task-hngi13",
+  "version": "1.0.0",
+  "description": "Second task on HNG-2025-Stage-One",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Skb111/Backend_Stage_1_task-HNGi13.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Skb111/Backend_Stage_1_task-HNGi13/issues"
+  },
+  "homepage": "https://github.com/Skb111/Backend_Stage_1_task-HNGi13#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  }
+}
