@@ -9,7 +9,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 8080;
 const store = new Map();
 
-// --- Helper Functions ---
+// --- Helpers ---
 function sanitizeForPalindrome(s) {
   return s.replace(/[^0-9a-z]/gi, "").toLowerCase();
 }
@@ -20,7 +20,7 @@ function sha256Hex(s) {
 
 function analyse(value) {
   const length = value.length;
-  const words = value.trim().length === 0 ? [] : value.trim().split(/\s+/);
+  const words = value.trim().split(/\s+/).filter(Boolean);
   const wordCount = words.length;
 
   const cleaned = sanitizeForPalindrome(value);
@@ -46,7 +46,7 @@ function analyse(value) {
   };
 }
 
-// --- Default Route ---
+// --- Default route ---
 app.get("/", (req, res) => {
   res.json({
     status: "success",
@@ -55,8 +55,8 @@ app.get("/", (req, res) => {
       name: "SADIQ KABIRU",
       stack: "Node.js/Express",
     },
+    message: "HNGi13 Stage 1 Backend Task",
     timestamp: new Date().toISOString(),
-    fact: "This is the 2nd task",
   });
 });
 
@@ -78,7 +78,7 @@ app.post("/strings", (req, res) => {
 
 // --- GET /strings/:value ---
 app.get("/strings/:value", (req, res) => {
-  const value = req.params.value;
+  const { value } = req.params;
   if (!store.has(value))
     return res.status(404).json({ error: "String not found" });
   return res.status(200).json(store.get(value));
@@ -86,46 +86,44 @@ app.get("/strings/:value", (req, res) => {
 
 // --- GET /strings (filters) ---
 app.get("/strings", (req, res) => {
-  try {
-    const { isPalindrome, minLength, maxLength, contains, wordCount } = req.query;
-    let results = Array.from(store.values());
+  const { isPalindrome, minLength, maxLength, contains, wordCount } = req.query;
+  let results = Array.from(store.values());
 
-    if (isPalindrome !== undefined) {
-      if (isPalindrome !== "true" && isPalindrome !== "false")
-        return res.status(400).json({ error: "isPalindrome must be 'true' or 'false'" });
-      const want = isPalindrome === "true";
-      results = results.filter((r) => r.isPalindrome === want);
-    }
-
-    if (minLength !== undefined) {
-      const n = Number(minLength);
-      if (!Number.isFinite(n))
-        return res.status(400).json({ error: "minLength must be a number" });
-      results = results.filter((r) => r.length >= n);
-    }
-
-    if (maxLength !== undefined) {
-      const n = Number(maxLength);
-      if (!Number.isFinite(n))
-        return res.status(400).json({ error: "maxLength must be a number" });
-      results = results.filter((r) => r.length <= n);
-    }
-
-    if (wordCount !== undefined) {
-      const n = Number(wordCount);
-      if (!Number.isFinite(n))
-        return res.status(400).json({ error: "wordCount must be a number" });
-      results = results.filter((r) => r.wordCount === n);
-    }
-
-    if (contains !== undefined) {
-      results = results.filter((r) => r.string.includes(contains));
-    }
-
-    return res.status(200).json({ count: results.length, data: results });
-  } catch {
-    return res.status(400).json({ error: "Bad query" });
+  if (isPalindrome !== undefined) {
+    if (isPalindrome !== "true" && isPalindrome !== "false")
+      return res.status(400).json({ error: "isPalindrome must be 'true' or 'false'" });
+    const want = isPalindrome === "true";
+    results = results.filter((r) => r.isPalindrome === want);
   }
+
+  if (minLength !== undefined) {
+    const n = Number(minLength);
+    if (!Number.isFinite(n))
+      return res.status(400).json({ error: "minLength must be a number" });
+    results = results.filter((r) => r.length >= n);
+  }
+
+  if (maxLength !== undefined) {
+    const n = Number(maxLength);
+    if (!Number.isFinite(n))
+      return res.status(400).json({ error: "maxLength must be a number" });
+    results = results.filter((r) => r.length <= n);
+  }
+
+  if (wordCount !== undefined) {
+    const n = Number(wordCount);
+    if (!Number.isFinite(n))
+      return res.status(400).json({ error: "wordCount must be a number" });
+    results = results.filter((r) => r.wordCount === n);
+  }
+
+  if (contains !== undefined) {
+    results = results.filter((r) =>
+      r.string.toLowerCase().includes(contains.toLowerCase())
+    );
+  }
+
+  return res.status(200).json({ count: results.length, data: results });
 });
 
 // --- GET /strings/filter-by-natural-language ---
@@ -136,55 +134,42 @@ app.get("/strings/filter-by-natural-language", (req, res) => {
   const lower = q.toLowerCase();
   let results = Array.from(store.values());
 
-  if (lower.includes("palind")) {
+  if (lower.includes("palindrome")) {
     results = results.filter((r) => r.isPalindrome);
-    return res.status(200).json({ count: results.length, data: results });
+  } else if (lower.includes("longer than")) {
+    const m = lower.match(/longer than (\d+)/);
+    if (m) {
+      const n = Number(m[1]);
+      results = results.filter((r) => r.length > n);
+    }
+  } else if (lower.includes("shorter than")) {
+    const m = lower.match(/shorter than (\d+)/);
+    if (m) {
+      const n = Number(m[1]);
+      results = results.filter((r) => r.length < n);
+    }
+  } else if (lower.includes("contains")) {
+    const m = lower.match(/contains\s+["']?([\w\s]+)["']?/);
+    if (m) {
+      const term = m[1].trim();
+      results = results.filter((r) =>
+        r.string.toLowerCase().includes(term.toLowerCase())
+      );
+    }
+  } else {
+    return res.status(400).json({ error: "Could not interpret query" });
   }
 
-  if (lower.includes("single word") || lower.includes("single-word")) {
-    results = results.filter((r) => r.wordCount === 1);
-    return res.status(200).json({ count: results.length, data: results });
-  }
-
-  let m = lower.match(/longer than (\d+)/);
-  if (m) {
-    const n = Number(m[1]);
-    if (!Number.isFinite(n))
-      return res.status(422).json({ error: "Invalid number in query" });
-    results = results.filter((r) => r.length > n);
-    return res.status(200).json({ count: results.length, data: results });
-  }
-
-  m = lower.match(/shorter than (\d+)/);
-  if (m) {
-    const n = Number(m[1]);
-    if (!Number.isFinite(n))
-      return res.status(422).json({ error: "Invalid number in query" });
-    results = results.filter((r) => r.length < n);
-    return res.status(200).json({ count: results.length, data: results });
-  }
-
-  m = lower.match(/contains ["']?([a-z0-9\s\-\_]+)["']?/i);
-  if (m) {
-    const substr = m[1];
-    results = results.filter((r) =>
-      r.string.toLowerCase().includes(substr.toLowerCase())
-    );
-    return res.status(200).json({ count: results.length, data: results });
-  }
-
-  return res.status(400).json({ error: "Could not interpret query" });
+  return res.status(200).json({ count: results.length, data: results });
 });
 
 // --- DELETE /strings/:value ---
 app.delete("/strings/:value", (req, res) => {
-  const value = req.params.value;
+  const { value } = req.params;
   if (!store.has(value))
     return res.status(404).json({ error: "String not found" });
   store.delete(value);
   return res.status(204).send();
 });
 
-
-// --- Start server ---
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
