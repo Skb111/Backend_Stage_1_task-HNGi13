@@ -4,11 +4,12 @@ const crypto = require("crypto");
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // ✅ replaces body-parser
+app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 const store = new Map();
 
+// --- Helper Functions ---
 function sanitizeForPalindrome(s) {
   return s.replace(/[^0-9a-z]/gi, "").toLowerCase();
 }
@@ -45,9 +46,7 @@ function analyse(value) {
   };
 }
 
-/* ---------- ROUTES ---------- */
-
-// Default root route for HNG check
+// --- Default Route ---
 app.get("/", (req, res) => {
   res.json({
     status: "success",
@@ -61,8 +60,8 @@ app.get("/", (req, res) => {
   });
 });
 
-// POST /strings
-app.post("/strings", (req, res) => {
+// --- POST /api/strings ---
+app.post("/api/strings", (req, res) => {
   const { value } = req.body || {};
 
   if (value === undefined)
@@ -77,15 +76,16 @@ app.post("/strings", (req, res) => {
   return res.status(201).json(analysis);
 });
 
-// GET /strings/:value
-app.get("/strings/:value", (req, res) => {
+// --- GET /api/strings/:value ---
+app.get("/api/strings/:value", (req, res) => {
   const value = req.params.value;
-  if (!store.has(value)) return res.status(404).json({ error: "String not found" });
+  if (!store.has(value))
+    return res.status(404).json({ error: "String not found" });
   return res.status(200).json(store.get(value));
 });
 
-// GET /strings (filters)
-app.get("/strings", (req, res) => {
+// --- GET /api/strings (filters) ---
+app.get("/api/strings", (req, res) => {
   try {
     const { isPalindrome, minLength, maxLength, contains, wordCount } = req.query;
     let results = Array.from(store.values());
@@ -128,8 +128,8 @@ app.get("/strings", (req, res) => {
   }
 });
 
-// GET /strings/filter-by-natural-language
-app.get("/strings/filter-by-natural-language", (req, res) => {
+// --- GET /api/strings/filter-by-natural-language ---
+app.get("/api/strings/filter-by-natural-language", (req, res) => {
   const { q } = req.query;
   if (!q) return res.status(400).json({ error: "Missing query parameter 'q'" });
 
@@ -149,7 +149,8 @@ app.get("/strings/filter-by-natural-language", (req, res) => {
   let m = lower.match(/longer than (\d+)/);
   if (m) {
     const n = Number(m[1]);
-    if (!Number.isFinite(n)) return res.status(422).json({ error: "Invalid number in query" });
+    if (!Number.isFinite(n))
+      return res.status(422).json({ error: "Invalid number in query" });
     results = results.filter((r) => r.length > n);
     return res.status(200).json({ count: results.length, data: results });
   }
@@ -157,7 +158,8 @@ app.get("/strings/filter-by-natural-language", (req, res) => {
   m = lower.match(/shorter than (\d+)/);
   if (m) {
     const n = Number(m[1]);
-    if (!Number.isFinite(n)) return res.status(422).json({ error: "Invalid number in query" });
+    if (!Number.isFinite(n))
+      return res.status(422).json({ error: "Invalid number in query" });
     results = results.filter((r) => r.length < n);
     return res.status(200).json({ count: results.length, data: results });
   }
@@ -165,20 +167,23 @@ app.get("/strings/filter-by-natural-language", (req, res) => {
   m = lower.match(/contains ["']?([a-z0-9\s\-\_]+)["']?/i);
   if (m) {
     const substr = m[1];
-    results = results.filter((r) => r.string.toLowerCase().includes(substr.toLowerCase()));
+    results = results.filter((r) =>
+      r.string.toLowerCase().includes(substr.toLowerCase())
+    );
     return res.status(200).json({ count: results.length, data: results });
   }
 
   return res.status(400).json({ error: "Could not interpret query" });
 });
 
-// DELETE /strings/:value
-app.delete("/strings/:value", (req, res) => {
+// --- DELETE /api/strings/:value ---
+app.delete("/api/strings/:value", (req, res) => {
   const value = req.params.value;
-  if (!store.has(value)) return res.status(404).json({ error: "String not found" });
+  if (!store.has(value))
+    return res.status(404).json({ error: "String not found" });
   store.delete(value);
   return res.status(204).send();
 });
 
-// Start server
+// --- Start server ---
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
