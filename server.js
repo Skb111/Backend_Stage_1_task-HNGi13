@@ -1,11 +1,10 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
 const crypto = require("crypto");
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json()); // ✅ replaces body-parser
 
 const PORT = process.env.PORT || 8080;
 const store = new Map();
@@ -48,28 +47,45 @@ function analyse(value) {
 
 /* ---------- ROUTES ---------- */
 
-// POST /api/v1/strings
-app.post("/api/v1/strings", (req, res) => {
+// Default root route for HNG check
+app.get("/", (req, res) => {
+  res.json({
+    status: "success",
+    user: {
+      email: "webemail655@gmail.com",
+      name: "SADIQ KABIRU",
+      stack: "Node.js/Express",
+    },
+    timestamp: new Date().toISOString(),
+    fact: "This is the 2nd task",
+  });
+});
+
+// POST /strings
+app.post("/strings", (req, res) => {
   const { value } = req.body || {};
 
-  if (value === undefined) return res.status(400).json({ error: "Missing 'value' field" });
-  if (typeof value !== "string") return res.status(422).json({ error: "'value' must be a string" });
-  if (store.has(value)) return res.status(409).json({ error: "String already exists" });
+  if (value === undefined)
+    return res.status(400).json({ error: "Missing 'value' field" });
+  if (typeof value !== "string")
+    return res.status(422).json({ error: "'value' must be a string" });
+  if (store.has(value))
+    return res.status(409).json({ error: "String already exists" });
 
   const analysis = analyse(value);
   store.set(value, analysis);
   return res.status(201).json(analysis);
 });
 
-// GET /api/v1/strings/:value
-app.get("/api/v1/strings/:value", (req, res) => {
+// GET /strings/:value
+app.get("/strings/:value", (req, res) => {
   const value = req.params.value;
   if (!store.has(value)) return res.status(404).json({ error: "String not found" });
   return res.status(200).json(store.get(value));
 });
 
-// GET /api/v1/strings (filters)
-app.get("/api/v1/strings", (req, res) => {
+// GET /strings (filters)
+app.get("/strings", (req, res) => {
   try {
     const { isPalindrome, minLength, maxLength, contains, wordCount } = req.query;
     let results = Array.from(store.values());
@@ -83,19 +99,22 @@ app.get("/api/v1/strings", (req, res) => {
 
     if (minLength !== undefined) {
       const n = Number(minLength);
-      if (!Number.isFinite(n)) return res.status(400).json({ error: "minLength must be a number" });
+      if (!Number.isFinite(n))
+        return res.status(400).json({ error: "minLength must be a number" });
       results = results.filter((r) => r.length >= n);
     }
 
     if (maxLength !== undefined) {
       const n = Number(maxLength);
-      if (!Number.isFinite(n)) return res.status(400).json({ error: "maxLength must be a number" });
+      if (!Number.isFinite(n))
+        return res.status(400).json({ error: "maxLength must be a number" });
       results = results.filter((r) => r.length <= n);
     }
 
     if (wordCount !== undefined) {
       const n = Number(wordCount);
-      if (!Number.isFinite(n)) return res.status(400).json({ error: "wordCount must be a number" });
+      if (!Number.isFinite(n))
+        return res.status(400).json({ error: "wordCount must be a number" });
       results = results.filter((r) => r.wordCount === n);
     }
 
@@ -109,8 +128,8 @@ app.get("/api/v1/strings", (req, res) => {
   }
 });
 
-// GET /api/v1/strings/filter-by-natural-language
-app.get("/api/v1/strings/filter-by-natural-language", (req, res) => {
+// GET /strings/filter-by-natural-language
+app.get("/strings/filter-by-natural-language", (req, res) => {
   const { q } = req.query;
   if (!q) return res.status(400).json({ error: "Missing query parameter 'q'" });
 
@@ -153,12 +172,13 @@ app.get("/api/v1/strings/filter-by-natural-language", (req, res) => {
   return res.status(400).json({ error: "Could not interpret query" });
 });
 
-// DELETE /api/v1/strings/:value
-app.delete("/api/v1/strings/:value", (req, res) => {
+// DELETE /strings/:value
+app.delete("/strings/:value", (req, res) => {
   const value = req.params.value;
   if (!store.has(value)) return res.status(404).json({ error: "String not found" });
   store.delete(value);
   return res.status(204).send();
 });
 
+// Start server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
