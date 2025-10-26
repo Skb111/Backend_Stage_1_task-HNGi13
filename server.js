@@ -60,8 +60,8 @@ app.get("/", (req, res) => {
   });
 });
 
-// --- POST /api/strings ---
-app.post("/api/strings", (req, res) => {
+// --- POST /strings ---
+app.post("/strings", (req, res) => {
   const { value } = req.body || {};
 
   if (value === undefined)
@@ -76,16 +76,16 @@ app.post("/api/strings", (req, res) => {
   return res.status(201).json(analysis);
 });
 
-// --- GET /api/strings/:value ---
-app.get("/api/strings/:value", (req, res) => {
+// --- GET /strings/:value ---
+app.get("/strings/:value", (req, res) => {
   const value = req.params.value;
   if (!store.has(value))
     return res.status(404).json({ error: "String not found" });
   return res.status(200).json(store.get(value));
 });
 
-// --- GET /api/strings (filters) ---
-app.get("/api/strings", (req, res) => {
+// --- GET /strings (filters) ---
+app.get("/strings", (req, res) => {
   try {
     const { isPalindrome, minLength, maxLength, contains, wordCount } = req.query;
     let results = Array.from(store.values());
@@ -128,8 +128,8 @@ app.get("/api/strings", (req, res) => {
   }
 });
 
-// --- GET /api/strings/filter-by-natural-language ---
-app.get("/api/strings/filter-by-natural-language", (req, res) => {
+// --- GET /strings/filter-by-natural-language ---
+app.get("/strings/filter-by-natural-language", (req, res) => {
   const { q } = req.query;
   if (!q) return res.status(400).json({ error: "Missing query parameter 'q'" });
 
@@ -176,14 +176,15 @@ app.get("/api/strings/filter-by-natural-language", (req, res) => {
   return res.status(400).json({ error: "Could not interpret query" });
 });
 
-// --- DELETE /api/strings/:value ---
-app.delete("/api/strings/:value", (req, res) => {
+// --- DELETE /strings/:value ---
+app.delete("/strings/:value", (req, res) => {
   const value = req.params.value;
   if (!store.has(value))
     return res.status(404).json({ error: "String not found" });
   store.delete(value);
   return res.status(204).send();
 });
+
 
 // --- Start server ---
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
